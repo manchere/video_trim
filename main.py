@@ -24,16 +24,21 @@ class TrimVideo:
         self.end_time = 100
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
-        self._saved_location = ""
+        self.saved_location = ""
+        self.message = ""
 
     def ffmpeg_trim(self):
         if self.video_path:
-            output_path = os.path.splitext(self.video_path)[0] + "_new.mp4"
-            ffmpeg_extract_subclip(self.video_path, self.start_time, self.end_time, targetname=output_path)
-            self._saved_location = output_path
+            if self.saved_location:
+                output_path = os.path.splitext(self.video_path)[0] + "_new.mp4"
+                ffmpeg_extract_subclip(self.video_path, self.start_time, self.end_time, targetname=output_path)
+                self.saved_location = output_path
+                self.message = self.saved_location
+            else:
+                self.message = "Error with saving location, please try again"
+        else:
+            self.message = "Error with video please, try again"
 
-    def get_saved_location(self):
-        return self._saved_location
 
 
 class View(QMainWindow):
@@ -58,6 +63,7 @@ class View(QMainWindow):
         self.end_slider.setRange(0, 100)
         self.end_slider.valueChanged.connect(self.update_end)
 
+        self.btn_saved_location = QPushButton("Choose Saving Location")
         self.btn_load = QPushButton("Load Video")
         self.btn_play = QPushButton("Play")
         self.btn_trim_video = QPushButton("Trim Video")
@@ -79,10 +85,13 @@ class View(QMainWindow):
         self.layout.addLayout(self.trim_layout)
         self.layout.addWidget(self.btn_load)
         self.layout.addWidget(self.btn_play)
+        self.layout.addWidget(self.btn_saved_location)
         self.layout.addWidget(self.btn_trim_video)
         self.layout.addWidget(self.lbl_validation)
 
         self.setCentralWidget(self.main_window)
+
+        self.btn_saved_location.clicked.connect(self.saving_location)
 
     def load_video(self):
         dialog = QFileDialog()
@@ -92,8 +101,7 @@ class View(QMainWindow):
             try:
                 self.video.video_path = video_path
                 self.video.media_player.setSource(QUrl.fromLocalFile(self.video.video_path))
-
-                # self.video.media_player.mediaStatusChanged.connect(self.update_duration)
+                self.video.media_player.mediaStatusChanged.connect(self.update_duration)
                 self.video.media_player.play()
             except Exception as e:
                 self.lbl_validation.setText(f"error loading video {e}")
@@ -104,11 +112,9 @@ class View(QMainWindow):
 
 
     def update_duration(self):
-        print(self.video.media_player.duration())
         if self.video.media_player.duration() > 0:
 
-            self.video.video_duration = self.video.media_player.duration() / 1000
-            print(self.video.video_duration)
+            self.video.video_duration = self.video.media_player.duration()
 
             self.start_slider.setRange(0, self.video.video_duration)
             self.end_slider.setRange(0, self.video.video_duration)
@@ -123,11 +129,19 @@ class View(QMainWindow):
 
     def update_start(self, value):
         self.video.start_time = value
-        self.lbl_begin.setText(f"Start: {value}s")
+        self.lbl_begin.setText(f"Start: {value / 1000}s")
 
     def update_end(self, value):
         self.video.end_time = value
-        self.lbl_end.setText(f"End: {value}s")
+        self.lbl_end.setText(f"End: {value / 1000}s")
+
+    def saving_location(self):
+        dialog = QFileDialog()
+        self.video.saved_location = dialog.getExistingDirectory(caption="Choose Saving Location")
+        self.lbl_validation.setText(self.video.message)
+
+
+
 
 
 if __name__ == "__main__":
