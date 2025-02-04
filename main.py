@@ -2,7 +2,7 @@ import os.path
 import sys
 
 from qtpy import QtWidgets, QtCore
-from PyQt5.QtMultimedia import QMediaPlayer, QAudioOutput
+from qtpy.QtMultimedia import QMediaPlayer, QMediaContent
 from qtpy.QtMultimediaWidgets import QVideoWidget
 from qtpy.QtCore import Qt, QUrl
 
@@ -18,14 +18,12 @@ class TrimVideo:
     def __init__(self):
         super(TrimVideo, self).__init__()
         self.video_path = ""
-        self.video_duration = 100  # Default duration
+        self.video_duration = 100  #default duration
         self.start_time = 0
         self.end_time = 100
         self.media_player = QMediaPlayer()
-
         self._saved_location = ""
 
-        # self.window = View()
 
     def ffmpeg_trim(self):
         if self.video_path:
@@ -60,13 +58,13 @@ class View(QtWidgets.QMainWindow):
         self.end_slider.valueChanged.connect(self.update_end)
 
         self.btn_trim_video = QtWidgets.QPushButton("trim")
-        self.load_button = QtWidgets.QPushButton("Load Video")
-        self.play_button = QtWidgets.QPushButton("Play")
-        self.trim_button = QtWidgets.QPushButton("Trim Video")
+        self.btn_load = QtWidgets.QPushButton("Load Video")
+        self.btn_play = QtWidgets.QPushButton("Play")
+        self.btn_trim = QtWidgets.QPushButton("Trim Video")
 
-        self.load_button.clicked.connect(self.load_video)
-        self.play_button.clicked.connect(self.toggle_play)
-        self.trim_button.clicked.connect(self.video.ffmpeg_trim)
+        self.btn_load.clicked.connect(self.load_video)
+        self.btn_play.clicked.connect(self.toggle_play)
+        self.btn_trim.clicked.connect(self.video.ffmpeg_trim)
 
         self.video_widget = QVideoWidget()
         self.video.media_player.setVideoOutput(self.video_widget)
@@ -76,46 +74,43 @@ class View(QtWidgets.QMainWindow):
         self.trim_layout.addWidget(self.lbl_end)
         self.trim_layout.addWidget(self.end_slider)
 
+        self.layout.addWidget(self.video_widget)
         self.layout.addLayout(self.trim_layout)
+        self.layout.addWidget(self.btn_load)
+        self.layout.addWidget(self.btn_play)
         self.layout.addWidget(self.btn_trim_video)
         self.layout.addWidget(self.lbl_validation)
 
         self.setCentralWidget(self.main_window)
 
     def load_video(self):
-        options = QtWidgets.QFileDialog.Options()
-        options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        options |= QtWidgets.QFileDialog.DontUseCustomDirectoryIcons
-        options |= QtWidgets.QFileDialog.ViewMode.List
         dialog = QtWidgets.QFileDialog()
-        dialog.setOptions(options)
-
         video_path, _ = dialog.getOpenFileName(self, "Choose Video", "", "Videos (*.mp4 *.avi *.mov *.mkv)")
 
         if video_path:
             self.video.video_path = video_path
-            self.video.media_player.setSource(QUrl.fromLocalFile(video_path))
-            self.media_player.play()
+            self.video.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(video_path)))
+            self.video.media_player.play()
 
             self.video.video_duration = 100
-            self.start_slider.setRange(0, self.video_duration)
-            self.end_slider.setRAnge(0, self.video_duration)
-            self.video.end_time = self.video_duration
+            self.start_slider.setRange(0, self.video.video_duration)
+            self.end_slider.setRange(0, self.video.video_duration)
+            self.video.end_time = self.video.video_duration
 
     def toggle_play(self):
         if self.video.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self.video.media_player.pause()
         else:
-            self.media_player.play()
+            self.video.media_player.play()
 
 
     def update_start(self, value):
         self.video.start_time = value
-        self.start_label.setText(f"Start: {value}s")
+        self.lbl_begin.setText(f"Start: {value}s")
 
     def update_end(self, value):
         self.video.end_time = value
-        self.end_label.setText(f"End: {value}s")
+        self.lbl_end.setText(f"End: {value}s")
 
 
 
