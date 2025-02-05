@@ -19,6 +19,7 @@ class TrimVideo:
     def __init__(self):
         super(TrimVideo, self).__init__()
         self.video_path = ""
+        self.video_filename = ""
         self.video_duration = 100
         self.start_time = 0
         self.end_time = 100
@@ -30,15 +31,16 @@ class TrimVideo:
     def ffmpeg_trim(self):
         if self.video_path:
             if self.saved_location:
-                output_path = os.path.splitext(self.video_path)[0] + "_new.mp4"
-                ffmpeg_extract_subclip(self.video_path, self.start_time, self.end_time, targetname=output_path)
-                self.saved_location = output_path
+                self.saved_location = os.path.splitext(self.video_path)[0] + "_new.mp4"
+                ffmpeg_extract_subclip(self.video_path, self.start_time, self.end_time, self.saved_location)
                 self.message = self.saved_location
             else:
                 self.message = "Error with saving location, please try again"
         else:
             self.message = "Error with video please, try again"
 
+    def filename(self):
+        return self.video_path.split("/")[-1]
 
 
 class View(QMainWindow):
@@ -70,7 +72,7 @@ class View(QMainWindow):
 
         self.btn_load.clicked.connect(self.load_video)
         self.btn_play.clicked.connect(self.toggle_play)
-        self.btn_trim_video.clicked.connect(self.video.ffmpeg_trim)
+        self.btn_trim_video.clicked.connect(self.trim)
 
         self.video_widget = QVideoWidget()
 
@@ -115,7 +117,6 @@ class View(QMainWindow):
         if self.video.media_player.duration() > 0:
 
             self.video.video_duration = self.video.media_player.duration()
-
             self.start_slider.setRange(0, self.video.video_duration)
             self.end_slider.setRange(0, self.video.video_duration)
             self.end_slider.setValue(self.video.video_duration)
@@ -138,10 +139,13 @@ class View(QMainWindow):
     def saving_location(self):
         dialog = QFileDialog()
         self.video.saved_location = dialog.getExistingDirectory(caption="Choose Saving Location")
+
+        if not self.video.saved_location:
+            self.video.saved_location = os.getcwd()
+        self.video.ffmpeg_trim()
+
+    def trim(self):
         self.lbl_validation.setText(self.video.message)
-
-
-
 
 
 if __name__ == "__main__":
